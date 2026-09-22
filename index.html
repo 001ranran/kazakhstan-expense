@@ -225,7 +225,7 @@ function idbOpen(){ return new Promise((resolve,reject)=>{ const req=indexedDB.o
 async function idbSet(key,value){ const db=await idbOpen(); return new Promise((resolve,reject)=>{ const tx=db.transaction("kv","readwrite"); tx.objectStore("kv").put(value,key); tx.oncomplete=()=>{db.close();resolve()}; tx.onerror=()=>{db.close();reject(tx.error)}; }); }
 async function idbGet(key){ const db=await idbOpen(); return new Promise((resolve,reject)=>{ const tx=db.transaction("kv","readonly"); const r=tx.objectStore("kv").get(key); r.onsuccess=()=>{db.close();resolve(r.result)}; r.onerror=()=>{db.close();reject(r.error)}; }); }
 async function persist(key,value){ const json=JSON.stringify(value); try{ localStorage.setItem(key,json); storageMode="localStorage"; updateStorageStatus(); return; }catch(e){} await idbSet(key,value); storageMode="indexedDB"; updateStorageStatus(); }
-function updateStorageStatus(){ const el=document.getElementById("storageStatus"); if(!el)return; if(storageMode==="localStorage"){el.className="storage-status ok";el.textContent="✓ 本地数据存储正常";} else if(storageMode==="indexedDB"){el.className="storage-status fallback";el.textContent="✓ 已启用 Safari 兼容存储";} else {el.textContent="正在检查数据存储…";} }
+function updateStorageStatus(){ const el=document.getElementById("storageStatus"); if(!el)return; if(storageMode==="localStorage"){el.className="storage-status ok";el.textContent="✓ 本地数据存储正常 · V6";} else if(storageMode==="indexedDB"){el.className="storage-status fallback";el.textContent="✓ 已启用 Safari 兼容存储 · V6";} else {el.textContent="正在检查数据存储…";} }
 async function loadFallbackData(){ try{ localStorage.setItem("kz_storage_test","1"); localStorage.removeItem("kz_storage_test"); storageMode="localStorage"; }catch(e){ storageMode="indexedDB"; const a=await idbGet(KEY),b=await idbGet(RATEKEY),c=await idbGet("kazakhstan_trip_settings_v2"),d=await idbGet("kazakhstan_trip_cash_adjustments_v2"); if(Array.isArray(a))expenses=a;if(b)rates=b;if(c)settings=c;if(Array.isArray(d))cashAdjustments=d; initSettings(); render(); updateRateText(); } updateStorageStatus(); }
 
 const $=id=>document.getElementById(id);
@@ -247,7 +247,10 @@ function saveRates(){return persist(RATEKEY,rates);}
 
 async function saveSettings(){
   settings={budget:Number($("budget").value)||0,cashStart:Number($("cashStart").value)||0,cashCurrency:$("cashCurrency").value};
-  try{ await persist("kazakhstan_trip_settings_v2",settings); render(); alert("旅行设置已保存"); }catch(e){ console.error(e); alert("设置保存失败，请确认 Safari 没有关闭网站数据存储。"); }
+  try{ await persist("kazakhstan_trip_settings_v2",settings); }
+  catch(e){ console.error("settings persist failed",e); alert("设置写入失败。"); return; }
+  try{ renderDashboard(expenses); }catch(e){ console.error("dashboard render",e); }
+  alert("旅行设置已保存");
 }
 function initSettings(){
   $("budget").value=settings.budget||"";
@@ -294,14 +297,21 @@ function renderDashboard(all){
   const card=total-cash;
   $("totalBase").textContent=money(total);$("cashBase").textContent=money(cash);$("cardBase").textContent=money(card);
   const ci=cashBalanceInfo();
-  if(settings.cashStart>0){
+  {
     const nativeCur=settings.cashCurrency||"KZT";
     const nativeSpent=expenses.filter(x=>x.payment==="现金"&&x.currency===nativeCur).reduce((s,x)=>s+Number(x.amount||0),0);
     const nativeAdj=cashAdjustments.filter(x=>x.currency===nativeCur).reduce((s,x)=>s+(x.type==="in"?Number(x.amount||0):-Number(x.amount||0)),0);
-    const nativeBal=Number(settings.cashStart)+nativeAdj-nativeSpent;
-    $("cashBalance").textContent=fmt(nativeBal)+" "+nativeCur;
-    $("cashSub").textContent=ci.startCNY>0?`约 ${money(ci.balanceCNY)} · 起始 ${fmt(settings.cashStart)} ${nativeCur}`:`起始 ${fmt(settings.cashStart)} ${nativeCur} · 汇率更新后显示 CNY`;
-  }else{ $("cashBalance").textContent="—"; $("cashSub").textContent="设置起始现金后自动计算"; }
+    const nativeStart=Number(settings.cashStart)||0;
+    const nativeBal=nativeStart+nativeAdj-nativeSpent;
+    const hasCashData=nativeStart!==0 || nativeAdj!==0 || nativeSpent!==0;
+    if(hasCashData){
+      $("cashBalance").textContent=fmt(nativeBal)+" "+nativeCur;
+      $("cashSub").textContent=`起始 ${fmt(nativeStart)} + 调整 ${fmt(nativeAdj)} − 现金支出 ${fmt(nativeSpent)} ${nativeCur}`;
+    }else{
+      $("cashBalance").textContent="—";
+      $("cashSub").textContent="设置起始现金或添加现金调整后自动计算";
+    }
+  }
   const budget=settings.budget||0;
   $("budgetSub").innerHTML=budget?`预算 ${money(budget)} · 已使用 ${Math.round(total/budget*100)}%<div class="progress"><i style="width:${Math.min(100,total/budget*100)}%"></i></div>`:"未设置预算";
   ["住宿","租车","加油","吃饭"].forEach(c=>$("m"+c).textContent=money(all.filter(x=>x.category===c).reduce((s,x)=>s+x.baseAmount,0)));
@@ -366,11 +376,12 @@ async function saveExpense(){
   const item={id:editingId||makeId(),date,amount,currency,category:$("category").value,payment:$("payment").value,place:$("place").value.trim(),note:$("note").value.trim(),rate,baseAmount:amount*rate,createdAt:new Date().toISOString()};
   const old=expenses.slice(), wasEditing=!!editingId;
   if(editingId) expenses=expenses.map(x=>x.id===editingId?item:x); else expenses.push(item);
-  try{
-    await persist(KEY,expenses);
-    resetForm(); render(); switchTab("records");
-    setTimeout(()=>alert(wasEditing?"修改已保存":"已保存这笔支出"),50);
-  }catch(e){ expenses=old; console.error(e); alert("保存失败：Safari 无法使用本地存储或兼容存储。"); }
+  try{ await persist(KEY,expenses); }
+  catch(e){ expenses=old; console.error("expense persist failed",e); alert("这笔支出没有写入成功。"); return; }
+  resetForm();
+  try{ renderCore(); }catch(e){ console.error("core render",e); }
+  switchTab("records");
+  alert(wasEditing?"修改已保存":"已保存这笔支出");
 }
 function resetForm(){
   editingId=null;$("formTitle").textContent="添加一笔支出";
@@ -391,27 +402,26 @@ function filtered(){
   const s=$("search").value.toLowerCase(), c=$("filterCategory").value,p=$("filterPayment").value,cur=$("filterCurrency").value;
   return expenses.filter(x=>(!s||`${x.note} ${x.place}`.toLowerCase().includes(s))&&(!c||x.category===c)&&(!p||x.payment===p)&&(!cur||x.currency===cur));
 }
+function renderCore(){
+  const all=expenses.slice();
+  try{ renderDashboard(all); }catch(e){ console.error("dashboard",e); }
+  if($("count")) $("count").textContent=all.length;
+  try{ updateFilters(); }catch(e){ console.error("filters",e); }
+  let data=[];
+  try{ data=filtered().slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")); }
+  catch(e){ data=all.slice(); }
+  const body=$("expenseBody");
+  if(body) body.innerHTML=data.length?data.map(x=>`
+    <tr><td>${x.date||""}</td><td><b>${escapeHtml(x.note||x.category||"支出")}</b></td>
+    <td><span class="tag">${escapeHtml(x.category||"")}</span></td><td>${escapeHtml(x.payment||"")}</td>
+    <td class="amount">${fmt(x.amount)} ${escapeHtml(x.currency||"")}<div class="small">× ${fmt(x.rate)}</div></td>
+    <td class="amount">${money(x.baseAmount)}</td><td>${escapeHtml(x.place||"—")}</td>
+    <td><button class="btn" onclick="editExpense('${x.id}')">编辑</button> <button class="btn danger" onclick="deleteExpense('${x.id}')">删</button></td></tr>`).join(""):`<tr><td colspan="8" class="empty">还没有记录</td></tr>`;
+}
 function render(){
-  const data=filtered();
-  const all=expenses;
-  renderDashboard(all);
-  $("count").textContent=all.length;
-  $("totalBase").textContent=money(all.reduce((a,x)=>a+x.baseAmount,0));
-  $("cashBase").textContent=money(all.filter(x=>x.payment==="现金").reduce((a,x)=>a+x.baseAmount,0));
-  $("cardBase").textContent=money(all.filter(x=>x.payment==="刷卡").reduce((a,x)=>a+x.baseAmount,0));
-  updateFilters();
-  $("expenseBody").innerHTML=data.length?data.sort((a,b)=>b.date.localeCompare(a.date)).map(x=>`
-    <tr>
-      <td>${x.date}</td>
-      <td><b>${escapeHtml(x.note||x.category)}</b></td>
-      <td><span class="tag">${escapeHtml(x.category)}</span></td>
-      <td>${x.payment}</td>
-      <td class="amount">${fmt(x.amount)} ${x.currency}<div class="small">× ${fmt(x.rate)}</div></td>
-      <td class="amount">${money(x.baseAmount)}</td>
-      <td>${escapeHtml(x.place||"—")}</td>
-      <td><button class="btn" onclick="editExpense('${x.id}')">编辑</button> <button class="btn danger" onclick="deleteExpense('${x.id}')">删</button></td>
-    </tr>`).join(""):`<tr><td colspan="8" class="empty">还没有符合条件的记录</td></tr>`;
-  drawCategory(all);drawDaily(all);
+  renderCore();
+  try{ drawCategory(expenses); }catch(e){ console.error("category chart",e); }
+  try{ drawDaily(expenses); }catch(e){ console.error("daily chart",e); }
 }
 function updateFilters(){
   const cats=[...new Set(expenses.map(x=>x.category))], curs=[...new Set(expenses.map(x=>x.currency))];
