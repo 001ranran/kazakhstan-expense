@@ -380,7 +380,7 @@ select{
 <div class="app">
 <header class="top-hero tab-section active-tab" data-tab="home">
 <h1><span class="flag-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="3.2"/><path d="M12 2.8v2M12 13.2v2M5.8 9h2M16.2 9h2M7.6 4.6 9 6M15 12l1.4 1.4M16.4 4.6 15 6M9 12l-1.4 1.4M6 18c3-2.2 9-2.2 12 0-3.7.7-8.3.7-12 0Z"/></svg></span>哈萨克斯坦旅行记账</h1>
-<div class="subtitle">Almaty · Balkhash · Taraz · 2026/09/19–09/24 · V5</div>
+<div class="subtitle">Almaty · Balkhash · Taraz · 2026/09/19–09/24 · V9.2</div>
 
 </header>
 <div class="tab-page-title tab-section" data-tab="settings">旅行设置</div><div class="card tab-section" data-tab="settings" style="margin-bottom:12px">
@@ -414,10 +414,7 @@ select{
 
 
 </div>
-<div class="card tab-section active-tab" data-tab="home" style="margin-bottom:12px">
-<div class="section-title">城市消费</div>
-<div class="citygrid" id="cityCards"></div>
-</div>
+
 <div class="card tab-section" data-tab="settings" style="margin-bottom:12px">
 <div class="section-title">当前汇率</div>
 <div class="ratecards" id="rateCards"></div>
@@ -465,7 +462,7 @@ select{
 <div class="tab-page-title tab-section" data-tab="records">支出明细</div><div class="card tab-section" data-tab="records" style="margin-top:12px">
 <div class="section-title">支出记录</div>
 <div class="filters">
-<input id="search" oninput="render()" placeholder="搜索备注 / 地点"/>
+<input id="search" oninput="render()" placeholder="搜索备注"/>
 <select id="filterCategory" onchange="render()"><option value="">全部分类</option></select>
 <select id="filterPayment" onchange="render()"><option value="">全部支付方式</option><option>现金</option><option>刷卡</option></select>
 <select id="filterCurrency" onchange="render()"><option value="">全部货币</option></select>
@@ -496,7 +493,7 @@ function idbOpen(){ return new Promise((resolve,reject)=>{ const req=indexedDB.o
 async function idbSet(key,value){ const db=await idbOpen(); return new Promise((resolve,reject)=>{ const tx=db.transaction("kv","readwrite"); tx.objectStore("kv").put(value,key); tx.oncomplete=()=>{db.close();resolve()}; tx.onerror=()=>{db.close();reject(tx.error)}; }); }
 async function idbGet(key){ const db=await idbOpen(); return new Promise((resolve,reject)=>{ const tx=db.transaction("kv","readonly"); const r=tx.objectStore("kv").get(key); r.onsuccess=()=>{db.close();resolve(r.result)}; r.onerror=()=>{db.close();reject(r.error)}; }); }
 async function persist(key,value){ const json=JSON.stringify(value); try{ localStorage.setItem(key,json); storageMode="localStorage"; updateStorageStatus(); return; }catch(e){} await idbSet(key,value); storageMode="indexedDB"; updateStorageStatus(); }
-function updateStorageStatus(){ const el=document.getElementById("storageStatus"); if(!el)return; if(storageMode==="localStorage"){el.className="storage-status ok";el.textContent="✓ 本地数据存储正常 · V9.1";} else if(storageMode==="indexedDB"){el.className="storage-status fallback";el.textContent="✓ 已启用 Safari 兼容存储 · V9.1";} else {el.textContent="正在检查数据存储…";} }
+function updateStorageStatus(){ const el=document.getElementById("storageStatus"); if(!el)return; if(storageMode==="localStorage"){el.className="storage-status ok";el.textContent="✓ 本地数据存储正常 · V9.2";} else if(storageMode==="indexedDB"){el.className="storage-status fallback";el.textContent="✓ 已启用 Safari 兼容存储 · V9.2";} else {el.textContent="正在检查数据存储…";} }
 async function loadFallbackData(){ try{ localStorage.setItem("kz_storage_test","1"); localStorage.removeItem("kz_storage_test"); storageMode="localStorage"; }catch(e){ storageMode="indexedDB"; const a=await idbGet(KEY),b=await idbGet(RATEKEY),c=await idbGet("kazakhstan_trip_settings_v2"),d=await idbGet("kazakhstan_trip_cash_adjustments_v2"); if(Array.isArray(a))expenses=a;if(b)rates=b;if(c)settings=c;if(Array.isArray(d))cashAdjustments=d; initSettings(); render(); updateRateText(); } updateStorageStatus(); }
 
 const $=id=>document.getElementById(id);
@@ -591,13 +588,6 @@ function renderDashboard(all){
   }
   const budget=settings.budget||0;
   $("budgetSub").innerHTML=budget?`预算 ${money(budget)} · 已使用 ${Math.round(total/budget*100)}%<div class="progress"><i style="width:${Math.min(100,total/budget*100)}%"></i></div>`:"未设置预算";
-  
-  const cities=["Almaty","Balkhash","Taraz"];
-  const cityData=cities.map(city=>{
-    const xs=all.filter(x=>(x.place||"").toLowerCase().includes(city.toLowerCase()));
-    return {city,total:xs.reduce((s,x)=>s+x.baseAmount,0),count:xs.length};
-  });
-  $("cityCards").innerHTML=cityData.map(x=>`<div class="cityitem"><div class="cityname">📍 ${x.city}</div><div class="cityamount">${money(x.total)}</div><div class="citycount">${x.count} 笔记录</div></div>`).join("");
   const show=["KZT","USD","CNY","JPY"];
   $("rateCards").innerHTML=show.map(c=>`<div class="rateitem"><b>${c}</b>　1 ${c} = ${c==="CNY"?"1":(rates[c]?fmt(rates[c]):"—")} CNY</div>`).join("");
   renderCashAdjustments();
@@ -643,7 +633,6 @@ function updateRateText(){
 $("currency").addEventListener("change",()=>{$("manualRate").value="";updateRateText()});
 function useLiveRate(){$("manualRate").value="";updateRateText()}
 
-async 
 function selectCategory(cat){
   const el=$("category"); if(el) el.value=cat;
   document.querySelectorAll(".category-choice").forEach(b=>b.classList.toggle("active",b.getAttribute("data-category")===cat));
@@ -749,8 +738,8 @@ function drawDaily(data){
 }
 
 function exportCSV(){
-  const rows=[["日期","金额","货币","CNY","分类","支付方式","地点","备注","汇率"]];
-  expenses.forEach(x=>rows.push([x.date,x.amount,x.currency,x.baseAmount,x.category,x.payment,x.place,x.note,x.rate]));
+  const rows=[["日期","金额","货币","CNY","分类","支付方式","备注","汇率"]];
+  expenses.forEach(x=>rows.push([x.date,x.amount,x.currency,x.baseAmount,x.category,x.payment,x.note,x.rate]));
   const csv="\uFEFF"+rows.map(r=>r.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")).join("\n");
   download("kazakhstan-expenses.csv",new Blob([csv],{type:"text/csv;charset=utf-8"}));
 }
