@@ -355,6 +355,24 @@ select{
   gap:10px !important;
 }
 
+
+/* ===== V9 requested UI ===== */
+.home-metrics-grid{grid-template-columns:repeat(2,minmax(0,1fr)) !important;}
+.home-secondary{display:none !important;}
+.total-kzt{font-size:13px;font-weight:650;color:var(--kz-blue-deep,#087F9F);margin-top:3px;}
+.home-category-panel{margin:12px 0 !important;}
+.category-bars{display:flex;flex-direction:column;gap:12px;}
+.category-bar-row{display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:10px;font-size:13px;}
+.category-bar-track{height:10px;background:#e8f5f8;border-radius:999px;overflow:hidden;}
+.category-bar-fill{height:100%;background:linear-gradient(90deg,var(--kz-blue,#00A9CE),var(--kz-gold,#F4C542));border-radius:999px;}
+.category-bar-value{font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums;}
+.category-picker{display:flex;flex-wrap:wrap;gap:8px;margin-top:5px;}
+.category-choice{border:1px solid #cfe9ef;background:#fff;border-radius:999px;padding:9px 13px;font:inherit;font-size:14px;color:#31404a;}
+.category-choice.active{background:var(--kz-blue,#00A9CE);border-color:var(--kz-blue,#00A9CE);color:#fff;font-weight:700;}
+.legend{display:flex !important;flex-direction:column;gap:8px !important;align-items:stretch !important;}
+.legend span{display:grid !important;grid-template-columns:auto 1fr auto auto;align-items:center;gap:7px;width:100%;}
+.legend .legend-amount{font-weight:700;font-variant-numeric:tabular-nums;}
+
 </style>
 </head>
 <body>
@@ -384,16 +402,17 @@ select{
 <div class="notice">现金余额按照“现金起始金额 − 现金支出”计算；如果中途再次兑换/取现，可以在“现金调整”中补充。</div><div class="form-actions"><button class="btn primary" onclick="saveSettings()">保存旅行设置</button></div><div id="storageStatus" class="storage-status">正在检查数据存储…</div>
 </div>
 <div class="home-metrics-grid tab-section active-tab" data-tab="home">
-<div class="card metric"><div class="label">旅行总支出</div><div class="value" id="totalBase">¥0</div><div class="sub" id="budgetSub">未设置预算</div></div>
+<div class="card metric"><div class="label">旅行总支出</div><div class="value" id="totalBase">¥0</div><div class="total-kzt" id="totalKzt">≈ 0 KZT</div><div class="sub" id="budgetSub">未设置预算</div></div>
 <div class="card metric"><div class="label">现金余额</div><div class="value" id="cashBalance">—</div><div class="sub" id="cashSub">设置起始现金后自动计算</div></div>
-<div class="card metric"><div class="label">现金支出</div><div class="value" id="cashBase">¥0</div><div class="sub">已记录的现金消费</div></div>
-<div class="card metric"><div class="label">刷卡支出</div><div class="value" id="cardBase">¥0</div><div class="sub">信用卡/银行卡消费</div></div>
+
+
 </div>
+<div class="card tab-section active-tab home-category-panel" data-tab="home"><div class="section-title">分类消费</div><div id="homeCategoryBars" class="category-bars"></div></div>
 <div class="home-secondary tab-section active-tab" data-tab="home">
-<div class="card metric"><div class="label">住宿</div><div class="value" id="m住宿">¥0</div></div>
-<div class="card metric"><div class="label">租车</div><div class="value" id="m租车">¥0</div></div>
-<div class="card metric"><div class="label">加油</div><div class="value" id="m加油">¥0</div></div>
-<div class="card metric"><div class="label">吃饭</div><div class="value" id="m吃饭">¥0</div></div>
+
+
+
+
 </div>
 <div class="card tab-section active-tab" data-tab="home" style="margin-bottom:12px">
 <div class="section-title">城市消费</div>
@@ -408,15 +427,13 @@ select{
 <div class="section-title" id="formTitle">添加一笔支出</div>
 <div class="formgrid">
 <div class="field"><label>日期</label><input id="date" type="date"/></div>
-<div class="field"><label>金额</label><input id="amount" min="0" placeholder="例如 15000" step="0.01" type="number"/></div>
+<div class="field"><label>金额</label><input id="amount" min="0" placeholder="例如 15000" step="0.01" type="number" inputmode="decimal" pattern="[0-9]*[.,]?[0-9]*"/></div>
 <div class="field"><label>货币</label>
 <select id="currency"><option>KZT</option><option>USD</option><option>CNY</option><option>JPY</option><option>EUR</option><option>GBP</option><option>KRW</option><option>SGD</option><option>MYR</option><option>THB</option></select>
 </div>
-<div class="field"><label>分类</label>
-<select id="category"><option>住宿</option><option>租车</option><option>加油</option><option>吃饭</option><option>买东西</option><option>交通</option><option>门票/活动</option><option>通信</option><option>其他</option></select>
-</div>
+<div class="field full"><label>分类</label><input type="hidden" id="category" value="住宿"/><div class="category-picker" id="categoryPicker"><button type="button" class="category-choice active" data-category="住宿" onclick="selectCategory('住宿')">住宿</button><button type="button" class="category-choice" data-category="租车" onclick="selectCategory('租车')">租车</button><button type="button" class="category-choice" data-category="加油" onclick="selectCategory('加油')">加油</button><button type="button" class="category-choice" data-category="吃饭" onclick="selectCategory('吃饭')">吃饭</button><button type="button" class="category-choice" data-category="买东西" onclick="selectCategory('买东西')">买东西</button><button type="button" class="category-choice" data-category="交通" onclick="selectCategory('交通')">交通</button><button type="button" class="category-choice" data-category="门票/活动" onclick="selectCategory('门票/活动')">门票/活动</button><button type="button" class="category-choice" data-category="通信" onclick="selectCategory('通信')">通信</button><button type="button" class="category-choice" data-category="其他" onclick="selectCategory('其他')">其他</button></div></div>
 <div class="field"><label>支付方式</label><select id="payment"><option>刷卡</option><option>现金</option></select></div>
-<div class="field"><label>城市 / 地点</label><input id="place" placeholder="Almaty / Balkhash / Taraz"/></div>
+
 <div class="field full"><label>备注</label><input id="note" placeholder="例如：95号汽油、晚餐、酒店预付款"/></div>
 <div class="full ratebox">
 <div class="rate-row">
@@ -454,7 +471,7 @@ select{
 <select id="filterCurrency" onchange="render()"><option value="">全部货币</option></select>
 </div>
 <div class="tablewrap">
-<table><thead><tr><th>日期</th><th>项目</th><th>分类</th><th>支付</th><th>原币金额</th><th>CNY</th><th>地点</th><th></th></tr></thead>
+<table><thead><tr><th>日期</th><th>项目</th><th>分类</th><th>支付</th><th>原币金额</th><th>CNY</th><th></th></tr></thead>
 <tbody id="expenseBody"></tbody></table>
 </div>
 </div>
@@ -479,7 +496,7 @@ function idbOpen(){ return new Promise((resolve,reject)=>{ const req=indexedDB.o
 async function idbSet(key,value){ const db=await idbOpen(); return new Promise((resolve,reject)=>{ const tx=db.transaction("kv","readwrite"); tx.objectStore("kv").put(value,key); tx.oncomplete=()=>{db.close();resolve()}; tx.onerror=()=>{db.close();reject(tx.error)}; }); }
 async function idbGet(key){ const db=await idbOpen(); return new Promise((resolve,reject)=>{ const tx=db.transaction("kv","readonly"); const r=tx.objectStore("kv").get(key); r.onsuccess=()=>{db.close();resolve(r.result)}; r.onerror=()=>{db.close();reject(r.error)}; }); }
 async function persist(key,value){ const json=JSON.stringify(value); try{ localStorage.setItem(key,json); storageMode="localStorage"; updateStorageStatus(); return; }catch(e){} await idbSet(key,value); storageMode="indexedDB"; updateStorageStatus(); }
-function updateStorageStatus(){ const el=document.getElementById("storageStatus"); if(!el)return; if(storageMode==="localStorage"){el.className="storage-status ok";el.textContent="✓ 本地数据存储正常 · V8.2";} else if(storageMode==="indexedDB"){el.className="storage-status fallback";el.textContent="✓ 已启用 Safari 兼容存储 · V8.2";} else {el.textContent="正在检查数据存储…";} }
+function updateStorageStatus(){ const el=document.getElementById("storageStatus"); if(!el)return; if(storageMode==="localStorage"){el.className="storage-status ok";el.textContent="✓ 本地数据存储正常 · V9";} else if(storageMode==="indexedDB"){el.className="storage-status fallback";el.textContent="✓ 已启用 Safari 兼容存储 · V9";} else {el.textContent="正在检查数据存储…";} }
 async function loadFallbackData(){ try{ localStorage.setItem("kz_storage_test","1"); localStorage.removeItem("kz_storage_test"); storageMode="localStorage"; }catch(e){ storageMode="indexedDB"; const a=await idbGet(KEY),b=await idbGet(RATEKEY),c=await idbGet("kazakhstan_trip_settings_v2"),d=await idbGet("kazakhstan_trip_cash_adjustments_v2"); if(Array.isArray(a))expenses=a;if(b)rates=b;if(c)settings=c;if(Array.isArray(d))cashAdjustments=d; initSettings(); render(); updateRateText(); } updateStorageStatus(); }
 
 const $=id=>document.getElementById(id);
@@ -549,7 +566,13 @@ function renderDashboard(all){
   const total=all.reduce((s,x)=>s+x.baseAmount,0);
   const cash=all.filter(x=>x.payment==="现金").reduce((s,x)=>s+x.baseAmount,0);
   const card=total-cash;
-  $("totalBase").textContent=money(total);$("cashBase").textContent=money(cash);$("cardBase").textContent=money(card);
+  $("totalBase").textContent=money(total);
+  const kztRate=(rates&&rates.KZT&&Number(rates.KZT.rate||rates.KZT))||0;
+  if($("totalKzt")) $("totalKzt").textContent=kztRate>0?("≈ "+fmt(total/kztRate)+" KZT"):"KZT 汇率未设置";
+  const catMap={};all.forEach(x=>catMap[x.category]=(catMap[x.category]||0)+Number(x.baseAmount||0));
+  const catArr=Object.entries(catMap).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]);
+  const catMax=Math.max(1,...catArr.map(x=>x[1]));
+  if($("homeCategoryBars")) $("homeCategoryBars").innerHTML=catArr.length?catArr.map(x=>`<div class="category-bar-row"><span>${escapeHtml(x[0])}</span><div class="category-bar-track"><div class="category-bar-fill" style="width:${Math.max(3,x[1]/catMax*100)}%"></div></div><span class="category-bar-value">${money(x[1])}</span></div>`).join(""):'<div class="empty">还没有消费记录</div>';
   const ci=cashBalanceInfo();
   {
     const nativeCur=settings.cashCurrency||"KZT";
@@ -568,7 +591,7 @@ function renderDashboard(all){
   }
   const budget=settings.budget||0;
   $("budgetSub").innerHTML=budget?`预算 ${money(budget)} · 已使用 ${Math.round(total/budget*100)}%<div class="progress"><i style="width:${Math.min(100,total/budget*100)}%"></i></div>`:"未设置预算";
-  ["住宿","租车","加油","吃饭"].forEach(c=>$("m"+c).textContent=money(all.filter(x=>x.category===c).reduce((s,x)=>s+x.baseAmount,0)));
+  
   const cities=["Almaty","Balkhash","Taraz"];
   const cityData=cities.map(city=>{
     const xs=all.filter(x=>(x.place||"").toLowerCase().includes(city.toLowerCase()));
@@ -620,14 +643,20 @@ function updateRateText(){
 $("currency").addEventListener("change",()=>{$("manualRate").value="";updateRateText()});
 function useLiveRate(){$("manualRate").value="";updateRateText()}
 
-async function saveExpense(){
+async 
+function selectCategory(cat){
+  const el=$("category"); if(el) el.value=cat;
+  document.querySelectorAll(".category-choice").forEach(b=>b.classList.toggle("active",b.getAttribute("data-category")===cat));
+}
+
+function saveExpense(){
   const amount=Number($("amount").value);
   const date=$("date").value||today();
   const currency=$("currency").value;
   const rate=currentRate();
   if(!(amount>0)) return alert("请输入大于 0 的金额。");
   if(!(rate>0)) return alert(`目前没有 ${currency} → CNY 汇率。请先更新汇率，或手动输入汇率。`);
-  const item={id:editingId||makeId(),date,amount,currency,category:$("category").value,payment:$("payment").value,place:$("place").value.trim(),note:$("note").value.trim(),rate,baseAmount:amount*rate,createdAt:new Date().toISOString()};
+  const item={id:editingId||makeId(),date,amount,currency,category:$("category").value,payment:$("payment").value,place:"",note:$("note").value.trim(),rate,baseAmount:amount*rate,createdAt:(editingId?(expenses.find(x=>x.id===editingId)||{}).createdAt:null)||new Date().toISOString()};
   const old=expenses.slice(), wasEditing=!!editingId;
   if(editingId) expenses=expenses.map(x=>x.id===editingId?item:x); else expenses.push(item);
   try{ await persist(KEY,expenses); }
@@ -639,14 +668,14 @@ async function saveExpense(){
 }
 function resetForm(){
   editingId=null;$("formTitle").textContent="添加一笔支出";
-  $("date").value=today();$("amount").value="";$("place").value="";$("note").value="";$("manualRate").value="";
-  $("category").value="住宿";$("payment").value="刷卡";$("currency").value="KZT";updateRateText();
+  $("date").value=today();$("amount").value="";$("note").value="";$("manualRate").value="";
+  selectCategory("住宿");$("payment").value="刷卡";$("currency").value="KZT";updateRateText();
 }
 function editExpense(id){
   const x=expenses.find(e=>e.id===id);if(!x)return;
   editingId=id;$("formTitle").textContent="编辑支出";
   $("date").value=x.date;$("amount").value=x.amount;$("currency").value=x.currency;$("category").value=x.category;
-  $("payment").value=x.payment;$("place").value=x.place||"";$("note").value=x.note||"";$("manualRate").value=x.rate;
+  $("payment").value=x.payment;$("note").value=x.note||"";$("manualRate").value=x.rate;selectCategory(x.category||"其他");
   updateRateText();scrollToForm();
 }
 function deleteExpense(id){
@@ -654,7 +683,7 @@ function deleteExpense(id){
 }
 function filtered(){
   const s=$("search").value.toLowerCase(), c=$("filterCategory").value,p=$("filterPayment").value,cur=$("filterCurrency").value;
-  return expenses.filter(x=>(!s||`${x.note} ${x.place}`.toLowerCase().includes(s))&&(!c||x.category===c)&&(!p||x.payment===p)&&(!cur||x.currency===cur));
+  return expenses.filter(x=>(!s||`${x.note}`.toLowerCase().includes(s))&&(!c||x.category===c)&&(!p||x.payment===p)&&(!cur||x.currency===cur));
 }
 function renderCore(){
   const all=expenses.slice();
@@ -662,15 +691,15 @@ function renderCore(){
   if($("count")) $("count").textContent=all.length;
   try{ updateFilters(); }catch(e){ console.error("filters",e); }
   let data=[];
-  try{ data=filtered().slice().sort((a,b)=>(b.date||"").localeCompare(a.date||"")); }
+  try{ data=filtered().slice().sort((a,b)=>{const d=(b.date||"").localeCompare(a.date||"");if(d)return d;return String(a.createdAt||a.id||"").localeCompare(String(b.createdAt||b.id||""));}); }
   catch(e){ data=all.slice(); }
   const body=$("expenseBody");
   if(body) body.innerHTML=data.length?data.map(x=>`
     <tr><td>${x.date||""}</td><td><b>${escapeHtml(x.note||x.category||"支出")}</b></td>
     <td><span class="tag">${escapeHtml(x.category||"")}</span></td><td>${escapeHtml(x.payment||"")}</td>
     <td class="amount">${fmt(x.amount)} ${escapeHtml(x.currency||"")}<div class="small">× ${fmt(x.rate)}</div></td>
-    <td class="amount">${money(x.baseAmount)}</td><td>${escapeHtml(x.place||"—")}</td>
-    <td><button class="btn" onclick="editExpense('${x.id}')">编辑</button> <button class="btn danger" onclick="deleteExpense('${x.id}')">删</button></td></tr>`).join(""):`<tr><td colspan="8" class="empty">还没有记录</td></tr>`;
+    <td class="amount">${money(x.baseAmount)}</td>
+    <td><button class="btn" onclick="editExpense('${x.id}')">编辑</button> <button class="btn danger" onclick="deleteExpense('${x.id}')">删</button></td></tr>`).join(""):`<tr><td colspan="7" class="empty">还没有记录</td></tr>`;
 }
 function render(){
   renderCore();
@@ -701,7 +730,7 @@ function drawCategory(data){
   arr.forEach((v,i)=>{const ang=v[1]/total*Math.PI*2;ctx.beginPath();ctx.moveTo(cx,cy);ctx.arc(cx,cy,r,a,a+ang);ctx.closePath();ctx.fillStyle=colors[i%colors.length];ctx.fill();a+=ang});
   ctx.beginPath();ctx.arc(cx,cy,r*.56,0,Math.PI*2);ctx.fillStyle="#fff";ctx.fill();
   ctx.fillStyle="#172033";ctx.font="bold 16px sans-serif";ctx.textAlign="center";ctx.fillText(money(total),cx,cy+5);
-  $("categoryLegend").innerHTML=arr.map((x,i)=>`<span><i class="dot" style="background:${colors[i%colors.length]}"></i>${escapeHtml(x[0])} ${Math.round(x[1]/total*100)}%</span>`).join("");
+  $("categoryLegend").innerHTML=arr.map((x,i)=>`<span><i class="dot" style="background:${colors[i%colors.length]}"></i>${escapeHtml(x[0])}<b>${Math.round(x[1]/total*100)}%</b><span class="legend-amount">${money(x[1])}</span></span>`).join("");
 }
 function drawDaily(data){
   const {ctx,w,h}=setupCanvas("dailyChart");ctx.clearRect(0,0,w,h);
