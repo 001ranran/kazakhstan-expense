@@ -278,6 +278,83 @@ select{
   grid-column:1 / -1 !important;
 }
 
+
+/* V7.3 structural fix: ONLY this dedicated wrapper is a 2-column grid */
+.home-metrics-grid{
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:10px !important;
+  width:100% !important;
+  margin-bottom:12px !important;
+}
+.home-metrics-grid > .card.metric{
+  min-width:0 !important;
+  width:auto !important;
+  margin:0 !important;
+}
+.home-secondary{
+  display:block !important;
+  width:100% !important;
+}
+.home-secondary > *{
+  width:100% !important;
+  margin-left:0 !important;
+  margin-right:0 !important;
+}
+/* neutralize all older home-grid rules */
+.tab-section[data-tab="home"].grid{
+  display:block !important;
+  grid-template-columns:none !important;
+}
+
+
+/* ===== V7.4 page responsibility cleanup ===== */
+/* Home: every statistical metric block is a two-column dashboard */
+.home-metrics-grid,
+.home-secondary{
+  display:grid !important;
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:10px !important;
+  width:100% !important;
+}
+.home-metrics-grid > .metric,
+.home-secondary > .metric{
+  grid-column:auto !important;
+  width:auto !important;
+  min-width:0 !important;
+  margin:0 !important;
+}
+/* Any non-statistical home content can span the dashboard width */
+.home-metrics-grid > :not(.metric),
+.home-secondary > :not(.metric){
+  grid-column:1 / -1 !important;
+}
+/* Other tabs: only their own functional content; no dashboard metric cards */
+.tab-section[data-tab="records"] .metric,
+.tab-section[data-tab="add"] .metric,
+.tab-section[data-tab="stats"] .metric,
+.tab-section[data-tab="settings"] .metric{
+  display:none !important;
+}
+
+
+/* ===== V8 strict tab isolation ===== */
+.tab-section[data-tab]{display:none !important;}
+.tab-section[data-tab="home"].active-tab{display:block !important;}
+.home-metrics-grid[data-tab="home"].active-tab,
+.home-secondary[data-tab="home"].active-tab{display:grid !important;}
+.charts[data-tab="stats"].active-tab{display:grid !important;}
+.tab-section[data-tab="records"].active-tab,
+.tab-section[data-tab="add"].active-tab,
+.tab-section[data-tab="settings"].active-tab,
+.tab-page-title.active-tab{display:block !important;}
+/* Home dashboard is always 2 columns */
+.home-metrics-grid,
+.home-secondary{
+  grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+  gap:10px !important;
+}
+
 </style>
 </head>
 <body>
@@ -306,13 +383,13 @@ select{
 </div>
 <div class="notice">现金余额按照“现金起始金额 − 现金支出”计算；如果中途再次兑换/取现，可以在“现金调整”中补充。</div><div class="form-actions"><button class="btn primary" onclick="saveSettings()">保存旅行设置</button></div><div id="storageStatus" class="storage-status">正在检查数据存储…</div>
 </div>
-<div class="grid tab-section active-tab" data-tab="home">
+<div class="home-metrics-grid tab-section active-tab" data-tab="home">
 <div class="card metric"><div class="label">旅行总支出</div><div class="value" id="totalBase">¥0</div><div class="sub" id="budgetSub">未设置预算</div></div>
 <div class="card metric"><div class="label">现金余额</div><div class="value" id="cashBalance">—</div><div class="sub" id="cashSub">设置起始现金后自动计算</div></div>
 <div class="card metric"><div class="label">现金支出</div><div class="value" id="cashBase">¥0</div><div class="sub">已记录的现金消费</div></div>
 <div class="card metric"><div class="label">刷卡支出</div><div class="value" id="cardBase">¥0</div><div class="sub">信用卡/银行卡消费</div></div>
 </div>
-<div class="grid tab-section active-tab" data-tab="home">
+<div class="home-secondary tab-section active-tab" data-tab="home">
 <div class="card metric"><div class="label">住宿</div><div class="value" id="m住宿">¥0</div></div>
 <div class="card metric"><div class="label">租车</div><div class="value" id="m租车">¥0</div></div>
 <div class="card metric"><div class="label">加油</div><div class="value" id="m加油">¥0</div></div>
@@ -384,7 +461,7 @@ select{
 <footer class="tab-section" data-tab="settings">
   数据保存在当前浏览器本地。建议旅行中定期使用“备份”保存 JSON。首次联网可更新汇率；之后可以离线继续记账。
 </footer>
-<nav aria-label="主导航" class="bottom-nav"><a class="nav-item" data-target="home" href="#home"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3.5 10.5 12 3l8.5 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-5v-6h-4v6H5a1.5 1.5 0 0 1-1.5-1.5Z"/></svg></span><span class="nav-label">首页</span></a><a class="nav-item" data-target="records" href="#records"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M7 5h14M7 12h14M7 19h14"/><circle cx="3.5" cy="5" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="19" r="1"/></svg></span><span class="nav-label">明细</span></a><a class="nav-item add-main" data-target="add" href="#add"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span class="nav-label">记账</span></a><a class="nav-item" data-target="stats" href="#stats"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span class="nav-label">统计</span></a><a class="nav-item" data-target="settings" href="#settings"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg></span><span class="nav-label">设置</span></a></nav></div>
+<nav aria-label="主导航" class="bottom-nav"><a class="nav-item" data-target="home" href="#home" onclick="window.__showTabV82('home'); return false;"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M3.5 10.5 12 3l8.5 7.5v9a1.5 1.5 0 0 1-1.5 1.5h-5v-6h-4v6H5a1.5 1.5 0 0 1-1.5-1.5Z"/></svg></span><span class="nav-label">首页</span></a><a class="nav-item" data-target="records" href="#records" onclick="window.__showTabV82('records'); return false;"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M7 5h14M7 12h14M7 19h14"/><circle cx="3.5" cy="5" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="19" r="1"/></svg></span><span class="nav-label">明细</span></a><a class="nav-item add-main" data-target="add" href="#add" onclick="window.__showTabV82('add'); return false;"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span class="nav-label">记账</span></a><a class="nav-item" data-target="stats" href="#stats" onclick="window.__showTabV82('stats'); return false;"><span class="nav-icon"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg></span><span class="nav-label">统计</span></a><a class="nav-item" data-target="settings" href="#settings" onclick="window.__showTabV82('settings'); return false;"><span class="nav-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3V2.8h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"/></svg></span><span class="nav-label">设置</span></a></nav></div>
 
 <script>
 const KEY="kazakhstan_trip_expenses_v1";
@@ -402,7 +479,7 @@ function idbOpen(){ return new Promise((resolve,reject)=>{ const req=indexedDB.o
 async function idbSet(key,value){ const db=await idbOpen(); return new Promise((resolve,reject)=>{ const tx=db.transaction("kv","readwrite"); tx.objectStore("kv").put(value,key); tx.oncomplete=()=>{db.close();resolve()}; tx.onerror=()=>{db.close();reject(tx.error)}; }); }
 async function idbGet(key){ const db=await idbOpen(); return new Promise((resolve,reject)=>{ const tx=db.transaction("kv","readonly"); const r=tx.objectStore("kv").get(key); r.onsuccess=()=>{db.close();resolve(r.result)}; r.onerror=()=>{db.close();reject(r.error)}; }); }
 async function persist(key,value){ const json=JSON.stringify(value); try{ localStorage.setItem(key,json); storageMode="localStorage"; updateStorageStatus(); return; }catch(e){} await idbSet(key,value); storageMode="indexedDB"; updateStorageStatus(); }
-function updateStorageStatus(){ const el=document.getElementById("storageStatus"); if(!el)return; if(storageMode==="localStorage"){el.className="storage-status ok";el.textContent="✓ 本地数据存储正常 · V7.2";} else if(storageMode==="indexedDB"){el.className="storage-status fallback";el.textContent="✓ 已启用 Safari 兼容存储 · V7.2";} else {el.textContent="正在检查数据存储…";} }
+function updateStorageStatus(){ const el=document.getElementById("storageStatus"); if(!el)return; if(storageMode==="localStorage"){el.className="storage-status ok";el.textContent="✓ 本地数据存储正常 · V8.2";} else if(storageMode==="indexedDB"){el.className="storage-status fallback";el.textContent="✓ 已启用 Safari 兼容存储 · V8.2";} else {el.textContent="正在检查数据存储…";} }
 async function loadFallbackData(){ try{ localStorage.setItem("kz_storage_test","1"); localStorage.removeItem("kz_storage_test"); storageMode="localStorage"; }catch(e){ storageMode="indexedDB"; const a=await idbGet(KEY),b=await idbGet(RATEKEY),c=await idbGet("kazakhstan_trip_settings_v2"),d=await idbGet("kazakhstan_trip_cash_adjustments_v2"); if(Array.isArray(a))expenses=a;if(b)rates=b;if(c)settings=c;if(Array.isArray(d))cashAdjustments=d; initSettings(); render(); updateRateText(); } updateStorageStatus(); }
 
 const $=id=>document.getElementById(id);
@@ -668,13 +745,150 @@ try{ render(); }catch(e){ console.error("render",e); }
 window.addEventListener("resize",()=>{try{drawCategory(expenses);drawDaily(expenses)}catch(e){}});
 
 function switchTab(tab){
-  try{ location.hash=tab; }catch(e){}
-  try{ localStorage.setItem('kazakhstan_trip_active_tab',tab); }catch(e){}
-  try{ window.scrollTo(0,0); }catch(e){}
-  if(tab==='add') setTimeout(function(){var a=document.getElementById('amount');if(a)a.focus();},180);
+  const valid=["home","records","add","stats","settings"];
+  if(!valid.includes(tab)) tab="home";
+
+  document.querySelectorAll(".tab-section[data-tab]").forEach(function(el){
+    const mine=el.getAttribute("data-tab");
+    if(mine===tab){
+      el.style.setProperty("display", el.classList.contains("grid") || el.classList.contains("home-metrics-grid") || el.classList.contains("home-secondary") || el.classList.contains("charts") ? "grid" : "block", "important");
+      el.classList.add("active-tab");
+    }else{
+      el.style.setProperty("display","none","important");
+      el.classList.remove("active-tab");
+    }
+  });
+
+  document.querySelectorAll(".nav-item").forEach(function(el){
+    el.classList.toggle("active",el.getAttribute("data-target")===tab);
+  });
+
+  // Dashboard metrics can never appear outside Home.
+  document.querySelectorAll('[data-tab="home"]').forEach(function(el){
+    if(tab!=="home") el.style.setProperty("display","none","important");
+  });
+
+  window.scrollTo(0,0);
+  if(tab==="records"){ try{renderCore();}catch(e){console.error(e);} }
+  if(tab==="stats"){
+    try{drawCategory(expenses);}catch(e){console.error(e);}
+    try{drawDaily(expenses);}catch(e){console.error(e);}
+  }
 }
 function scrollToForm(){switchTab('add');}
 
 </script>
+
+
+
+
+
+
+
+<script>
+(function(){
+  function showTab(tab){
+    var valid=["home","records","add","stats","settings"];
+    if(valid.indexOf(tab)<0) tab="home";
+
+    document.querySelectorAll(".tab-section[data-tab]").forEach(function(el){
+      var show=el.getAttribute("data-tab")===tab;
+      el.classList.toggle("active-tab",show);
+      if(!show){
+        el.style.setProperty("display","none","important");
+      }else{
+        var d="block";
+        if(el.classList.contains("home-metrics-grid") ||
+           el.classList.contains("home-secondary") ||
+           el.classList.contains("charts")) d="grid";
+        el.style.setProperty("display",d,"important");
+      }
+    });
+
+    document.querySelectorAll(".nav-item[data-target]").forEach(function(el){
+      el.classList.toggle("active",el.getAttribute("data-target")===tab);
+    });
+
+    if(tab==="records"){
+      try{ renderCore(); }catch(e){ console.error(e); }
+    } else if(tab==="stats"){
+      try{ drawCategory(expenses); }catch(e){ console.error(e); }
+      try{ drawDaily(expenses); }catch(e){ console.error(e); }
+    }
+    window.scrollTo(0,0);
+  }
+
+  window.switchTab=showTab;
+
+  document.addEventListener("DOMContentLoaded",function(){
+    document.querySelectorAll(".nav-item[data-target]").forEach(function(el){
+      el.addEventListener("click",function(ev){
+        ev.preventDefault();
+        showTab(el.getAttribute("data-target"));
+      });
+    });
+    showTab("home");
+  });
+})();
+</script>
+
+
+<script>
+(function(){
+  function show(tab){
+    var valid={home:1,records:1,add:1,stats:1,settings:1};
+    if(!valid[tab]) tab="home";
+
+    var sections=document.querySelectorAll(".tab-section[data-tab]");
+    for(var i=0;i<sections.length;i++){
+      var el=sections[i];
+      var on=el.getAttribute("data-tab")===tab;
+      if(on){
+        el.classList.add("active-tab");
+        var mode="block";
+        if(el.classList.contains("home-metrics-grid") ||
+           el.classList.contains("home-secondary") ||
+           el.classList.contains("charts")) mode="grid";
+        el.style.cssText += ";display:"+mode+" !important;";
+      }else{
+        el.classList.remove("active-tab");
+        el.style.cssText += ";display:none !important;";
+      }
+    }
+
+    var nav=document.querySelectorAll(".nav-item[data-target]");
+    for(var j=0;j<nav.length;j++){
+      if(nav[j].getAttribute("data-target")===tab) nav[j].classList.add("active");
+      else nav[j].classList.remove("active");
+    }
+
+    if(tab==="records"){
+      try{ if(typeof renderCore==="function") renderCore(); }catch(e){}
+    }
+    if(tab==="stats"){
+      try{ if(typeof drawCategory==="function") drawCategory(expenses); }catch(e){}
+      try{ if(typeof drawDaily==="function") drawDaily(expenses); }catch(e){}
+    }
+    try{window.scrollTo(0,0);}catch(e){}
+  }
+
+  window.__showTabV82=show;
+  window.switchTab=show;
+
+  // Bind immediately because this script is at the end of body.
+  var nav=document.querySelectorAll(".nav-item[data-target]");
+  for(var i=0;i<nav.length;i++){
+    (function(el){
+      el.onclick=function(e){
+        if(e && e.preventDefault) e.preventDefault();
+        show(el.getAttribute("data-target"));
+        return false;
+      };
+    })(nav[i]);
+  }
+  show("home");
+})();
+</script>
+
 </body>
 </html>
