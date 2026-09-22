@@ -90,6 +90,17 @@ body:has(#settings:target) .tab-section{display:none} body:has(#settings:target)
 body:has(#home:target) .tab-section{display:none} body:has(#home:target) .tab-section[data-tab="home"]{display:block}
 .bottom-nav a.nav-item{text-decoration:none}
 body:has(#home:target) .nav-item[data-target="home"],body:not(:has(.tab-target:target)) .nav-item[data-target="home"],body:has(#records:target) .nav-item[data-target="records"],body:has(#add:target) .nav-item[data-target="add"],body:has(#stats:target) .nav-item[data-target="stats"],body:has(#settings:target) .nav-item[data-target="settings"]{color:var(--kz-blue-deep)}
+
+/* V5 compact mobile dashboard */
+@media(max-width:500px){
+  [data-tab="home"].grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-bottom:9px}
+  [data-tab="home"] .metric{min-height:108px;padding:13px}
+  [data-tab="home"] .metric .value{font-size:22px;margin-top:7px}
+  [data-tab="home"] .metric .sub{font-size:10px;line-height:1.35}
+  .citygrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+  .cityitem{padding:9px 7px;text-align:center}.cityamount{font-size:14px}.cityname{font-size:11px}.citycount{font-size:9px}
+}
+.storage-status{font-size:11px;margin-top:9px;color:#55717d}.storage-status.ok{color:#087f5b}.storage-status.fallback{color:#9a6700}
 </style>
 </head>
 <body>
@@ -97,7 +108,7 @@ body:has(#home:target) .nav-item[data-target="home"],body:not(:has(.tab-target:t
 <div class="app">
 <header class="top-hero tab-section active-tab" data-tab="home">
 <h1><span class="flag-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="9" r="3.2"/><path d="M12 2.8v2M12 13.2v2M5.8 9h2M16.2 9h2M7.6 4.6 9 6M15 12l1.4 1.4M16.4 4.6 15 6M9 12l-1.4 1.4M6 18c3-2.2 9-2.2 12 0-3.7.7-8.3.7-12 0Z"/></svg></span>哈萨克斯坦旅行记账</h1>
-<div class="subtitle">Almaty · Balkhash · Taraz · 2026/09/19–09/24 · V4 Stable</div>
+<div class="subtitle">Almaty · Balkhash · Taraz · 2026/09/19–09/24 · V5</div>
 
 </header>
 <div class="tab-page-title tab-section" data-tab="settings">旅行设置</div><div class="card tab-section" data-tab="settings" style="margin-bottom:12px">
@@ -109,14 +120,14 @@ body:has(#home:target) .nav-item[data-target="home"],body:not(:has(.tab-target:t
 <label class="btn dark">恢复<input accept=".json" id="restoreFile" onchange="restoreJSON(event)" style="display:none" type="file"/></label>
 </div><div class="section-title">旅行设置</div>
 <div class="formgrid">
-<div class="field"><label>旅行预算（CNY）</label><input id="budget" min="0" onchange="saveSettings();render()" placeholder="例如 10000" step="100" type="number"/></div>
-<div class="field"><label>现金起始金额</label><input id="cashStart" min="0" onchange="saveSettings();render()" placeholder="例如 100000" step="1000" type="number"/></div>
+<div class="field"><label>旅行预算（CNY）</label><input id="budget" min="0" placeholder="例如 10000" step="100" type="number"/></div>
+<div class="field"><label>现金起始金额</label><input id="cashStart" min="0" placeholder="例如 100000" step="1000" type="number"/></div>
 <div class="field"><label>现金货币</label>
-<select id="cashCurrency" onchange="saveSettings();render()"><option>KZT</option><option>USD</option><option>CNY</option></select>
+<select id="cashCurrency"><option>KZT</option><option>USD</option><option>CNY</option></select>
 </div>
 <div class="field"><label>统计基准货币</label><select disabled="" id="baseCurrency"><option>CNY</option></select></div>
 </div>
-<div class="notice">现金余额按照“现金起始金额 − 现金支出”计算；如果中途再次兑换/取现，可以在“现金调整”中补充。</div>
+<div class="notice">现金余额按照“现金起始金额 − 现金支出”计算；如果中途再次兑换/取现，可以在“现金调整”中补充。</div><div class="form-actions"><button class="btn primary" onclick="saveSettings()">保存旅行设置</button></div><div id="storageStatus" class="storage-status">正在检查数据存储…</div>
 </div>
 <div class="grid tab-section active-tab" data-tab="home">
 <div class="card metric"><div class="label">旅行总支出</div><div class="value" id="totalBase">¥0</div><div class="sub" id="budgetSub">未设置预算</div></div>
@@ -202,11 +213,20 @@ body:has(#home:target) .nav-item[data-target="home"],body:not(:has(.tab-target:t
 const KEY="kazakhstan_trip_expenses_v1";
 const RATEKEY="kazakhstan_trip_rates_v1";
 const BASE="CNY";
-let expenses=JSON.parse(localStorage.getItem(KEY)||"[]");
-let rates=JSON.parse(localStorage.getItem(RATEKEY)||"{}");
+function safeRead(key, fallback){ try{ const v=localStorage.getItem(key); return v?JSON.parse(v):fallback; }catch(e){ return fallback; } }
+let expenses=safeRead(KEY,[]);
+let rates=safeRead(RATEKEY,{});
 let editingId=null;
-let settings=JSON.parse(localStorage.getItem("kazakhstan_trip_settings_v2")||'{"budget":0,"cashStart":0,"cashCurrency":"KZT"}');
-let cashAdjustments=JSON.parse(localStorage.getItem("kazakhstan_trip_cash_adjustments_v2")||"[]");
+let settings=safeRead("kazakhstan_trip_settings_v2",{budget:0,cashStart:0,cashCurrency:"KZT"});
+let cashAdjustments=safeRead("kazakhstan_trip_cash_adjustments_v2",[]);
+let storageMode="checking";
+
+function idbOpen(){ return new Promise((resolve,reject)=>{ const req=indexedDB.open("kazakhstan_trip_v5",1); req.onupgradeneeded=()=>{ const db=req.result; if(!db.objectStoreNames.contains("kv")) db.createObjectStore("kv"); }; req.onsuccess=()=>resolve(req.result); req.onerror=()=>reject(req.error); }); }
+async function idbSet(key,value){ const db=await idbOpen(); return new Promise((resolve,reject)=>{ const tx=db.transaction("kv","readwrite"); tx.objectStore("kv").put(value,key); tx.oncomplete=()=>{db.close();resolve()}; tx.onerror=()=>{db.close();reject(tx.error)}; }); }
+async function idbGet(key){ const db=await idbOpen(); return new Promise((resolve,reject)=>{ const tx=db.transaction("kv","readonly"); const r=tx.objectStore("kv").get(key); r.onsuccess=()=>{db.close();resolve(r.result)}; r.onerror=()=>{db.close();reject(r.error)}; }); }
+async function persist(key,value){ const json=JSON.stringify(value); try{ localStorage.setItem(key,json); storageMode="localStorage"; updateStorageStatus(); return; }catch(e){} await idbSet(key,value); storageMode="indexedDB"; updateStorageStatus(); }
+function updateStorageStatus(){ const el=document.getElementById("storageStatus"); if(!el)return; if(storageMode==="localStorage"){el.className="storage-status ok";el.textContent="✓ 本地数据存储正常";} else if(storageMode==="indexedDB"){el.className="storage-status fallback";el.textContent="✓ 已启用 Safari 兼容存储";} else {el.textContent="正在检查数据存储…";} }
+async function loadFallbackData(){ try{ localStorage.setItem("kz_storage_test","1"); localStorage.removeItem("kz_storage_test"); storageMode="localStorage"; }catch(e){ storageMode="indexedDB"; const a=await idbGet(KEY),b=await idbGet(RATEKEY),c=await idbGet("kazakhstan_trip_settings_v2"),d=await idbGet("kazakhstan_trip_cash_adjustments_v2"); if(Array.isArray(a))expenses=a;if(b)rates=b;if(c)settings=c;if(Array.isArray(d))cashAdjustments=d; initSettings(); render(); updateRateText(); } updateStorageStatus(); }
 
 const $=id=>document.getElementById(id);
 const fmt=n=>new Intl.NumberFormat("zh-CN",{maximumFractionDigits:2}).format(Number(n)||0);
@@ -222,12 +242,12 @@ function makeId(){
 $("date").value=today();
 
 function scrollToForm(){ $("formCard").scrollIntoView({behavior:"smooth",block:"start"}); $("amount").focus(); }
-function save(){localStorage.setItem(KEY,JSON.stringify(expenses));}
-function saveRates(){localStorage.setItem(RATEKEY,JSON.stringify(rates));}
+function save(){return persist(KEY,expenses);}
+function saveRates(){return persist(RATEKEY,rates);}
 
-function saveSettings(){
+async function saveSettings(){
   settings={budget:Number($("budget").value)||0,cashStart:Number($("cashStart").value)||0,cashCurrency:$("cashCurrency").value};
-  localStorage.setItem("kazakhstan_trip_settings_v2",JSON.stringify(settings));
+  try{ await persist("kazakhstan_trip_settings_v2",settings); render(); alert("旅行设置已保存"); }catch(e){ console.error(e); alert("设置保存失败，请确认 Safari 没有关闭网站数据存储。"); }
 }
 function initSettings(){
   $("budget").value=settings.budget||"";
@@ -249,19 +269,19 @@ function cashBalanceInfo(){
   const spent=expenses.filter(x=>x.payment==="现金").reduce((s,x)=>s+x.baseAmount,0);
   return {startCNY,adjCNY,spent,balanceCNY:startCNY+adjCNY-spent};
 }
-function addCashAdjustment(){
+async function addCashAdjustment(){
   const amount=Number($("cashAdjAmount").value);
   if(!(amount>0)) return alert("请输入现金调整金额。");
   const currency=$("cashAdjCurrency").value;
   const rate=currency==="CNY"?1:Number(rates[currency]||0);
   if(!(rate>0)) return alert("没有该货币汇率，请先更新汇率。");
   cashAdjustments.push({id:makeId(),date:$("cashAdjDate").value||today(),amount,currency,type:$("cashAdjType").value,note:$("cashAdjNote").value.trim(),rate});
-  localStorage.setItem("kazakhstan_trip_cash_adjustments_v2",JSON.stringify(cashAdjustments));
+  await persist("kazakhstan_trip_cash_adjustments_v2",cashAdjustments);
   $("cashAdjAmount").value="";$("cashAdjNote").value="";render();
 }
-function deleteCashAdjustment(id){
+async function deleteCashAdjustment(id){
   cashAdjustments=cashAdjustments.filter(x=>x.id!==id);
-  localStorage.setItem("kazakhstan_trip_cash_adjustments_v2",JSON.stringify(cashAdjustments));render();
+  await persist("kazakhstan_trip_cash_adjustments_v2",cashAdjustments);render();
 }
 function renderCashAdjustments(){
   $("cashAdjList").innerHTML=cashAdjustments.length
@@ -274,8 +294,14 @@ function renderDashboard(all){
   const card=total-cash;
   $("totalBase").textContent=money(total);$("cashBase").textContent=money(cash);$("cardBase").textContent=money(card);
   const ci=cashBalanceInfo();
-  $("cashBalance").textContent=ci.startCNY>0?money(ci.balanceCNY):"—";
-  $("cashSub").textContent=ci.startCNY>0?`起始 ${money(ci.startCNY)} · 调整 ${money(ci.adjCNY)}`:"设置起始现金后自动计算";
+  if(settings.cashStart>0){
+    const nativeCur=settings.cashCurrency||"KZT";
+    const nativeSpent=expenses.filter(x=>x.payment==="现金"&&x.currency===nativeCur).reduce((s,x)=>s+Number(x.amount||0),0);
+    const nativeAdj=cashAdjustments.filter(x=>x.currency===nativeCur).reduce((s,x)=>s+(x.type==="in"?Number(x.amount||0):-Number(x.amount||0)),0);
+    const nativeBal=Number(settings.cashStart)+nativeAdj-nativeSpent;
+    $("cashBalance").textContent=fmt(nativeBal)+" "+nativeCur;
+    $("cashSub").textContent=ci.startCNY>0?`约 ${money(ci.balanceCNY)} · 起始 ${fmt(settings.cashStart)} ${nativeCur}`:`起始 ${fmt(settings.cashStart)} ${nativeCur} · 汇率更新后显示 CNY`;
+  }else{ $("cashBalance").textContent="—"; $("cashSub").textContent="设置起始现金后自动计算"; }
   const budget=settings.budget||0;
   $("budgetSub").innerHTML=budget?`预算 ${money(budget)} · 已使用 ${Math.round(total/budget*100)}%<div class="progress"><i style="width:${Math.min(100,total/budget*100)}%"></i></div>`:"未设置预算";
   ["住宿","租车","加油","吃饭"].forEach(c=>$("m"+c).textContent=money(all.filter(x=>x.category===c).reduce((s,x)=>s+x.baseAmount,0)));
@@ -330,36 +356,21 @@ function updateRateText(){
 $("currency").addEventListener("change",()=>{$("manualRate").value="";updateRateText()});
 function useLiveRate(){$("manualRate").value="";updateRateText()}
 
-function saveExpense(){
+async function saveExpense(){
   const amount=Number($("amount").value);
   const date=$("date").value||today();
   const currency=$("currency").value;
   const rate=currentRate();
   if(!(amount>0)) return alert("请输入大于 0 的金额。");
   if(!(rate>0)) return alert(`目前没有 ${currency} → CNY 汇率。请先更新汇率，或手动输入汇率。`);
-  const item={
-    id:editingId||makeId(),
-    date,amount,currency,category:$("category").value,payment:$("payment").value,
-    place:$("place").value.trim(),note:$("note").value.trim(),
-    rate,baseAmount:amount*rate,
-    createdAt:new Date().toISOString()
-  };
-  const wasEditing=!!editingId;
-  if(editingId) expenses=expenses.map(x=>x.id===editingId?item:x);
-  else expenses.push(item);
+  const item={id:editingId||makeId(),date,amount,currency,category:$("category").value,payment:$("payment").value,place:$("place").value.trim(),note:$("note").value.trim(),rate,baseAmount:amount*rate,createdAt:new Date().toISOString()};
+  const old=expenses.slice(), wasEditing=!!editingId;
+  if(editingId) expenses=expenses.map(x=>x.id===editingId?item:x); else expenses.push(item);
   try{
-    save();
-    const check=JSON.parse(localStorage.getItem(KEY)||"[]");
-    if(!Array.isArray(check) || !check.some(x=>x.id===item.id)) throw new Error("storage verification failed");
-    expenses=check;
-    resetForm();
-    render();
-    switchTab("records");
+    await persist(KEY,expenses);
+    resetForm(); render(); switchTab("records");
     setTimeout(()=>alert(wasEditing?"修改已保存":"已保存这笔支出"),50);
-  }catch(e){
-    console.error(e);
-    alert("保存失败：当前浏览器没有成功写入本地数据。请在 Safari 中打开此页面，并确认没有使用限制本地存储的浏览模式。");
-  }
+  }catch(e){ expenses=old; console.error(e); alert("保存失败：Safari 无法使用本地存储或兼容存储。"); }
 }
 function resetForm(){
   editingId=null;$("formTitle").textContent="添加一笔支出";
@@ -464,6 +475,7 @@ function restoreJSON(ev){
 function download(name,blob){const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
 
 try{ initSettings(); }catch(e){ console.error("initSettings",e); }
+loadFallbackData().catch(e=>{console.error("storage init",e);storageMode="error";updateStorageStatus();});
 try{ updateRateText(); }catch(e){ console.error("updateRateText",e); }
 try{ render(); }catch(e){ console.error("render",e); }
 window.addEventListener("resize",()=>{try{drawCategory(expenses);drawDaily(expenses)}catch(e){}});
